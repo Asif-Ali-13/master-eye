@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     const payload: MovieInsightsResponse = {
       movie,
-      reviews,
+      reviews: effectiveReviews,
       sentiment,
     };
 
