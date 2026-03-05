@@ -28,11 +28,11 @@ Create a `.env.local` file in the project root with:
 
 ```bash
 OMDB_API_KEY=your_omdb_api_key_here
-OPENAI_API_KEY=your_openai_key_here
+GEMINI_API_KEY=your_gemini_key_here
 ```
 
 - **`OMDB_API_KEY`** – required to fetch movie metadata (title, year, rating, poster, plot, cast) from the [OMDb API](https://www.omdbapi.com/).
-- **`OPENAI_API_KEY`** – optional but recommended. Used to turn raw reviews into an AI-generated sentiment summary.
+- **`GEMINI_API_KEY`** – optional but recommended. Used to turn raw reviews into an AI-generated sentiment summary.
   - If this key is **not set**, the app will fall back to a simple word-based heuristic to classify sentiment and shows a note explaining that the summary is heuristic.
 
 ### 3. Run the development server
@@ -60,7 +60,7 @@ npm test
   - Validates the ID format.
   - Fetches movie details from **OMDb** using `OMDB_API_KEY`.
   - Scrapes public IMDb user reviews via the HTML reviews page for that title.
-  - Calls an AI model (via `OPENAI_API_KEY`) to synthesize:
+  - Calls an AI model (via `GEMINI_API_KEY`) to synthesize:
     - **Summary**: 3–5 sentence natural-language overview of audience sentiment.
     - **Overall label**: one of `positive | mixed | negative`.
   - Returns structured JSON to the frontend containing movie details, sample reviews and sentiment insights.
@@ -94,7 +94,7 @@ Error states (invalid ID, missing reviews, missing keys, network errors) are han
 ## Assumptions
 
 - **Public reviews only**: The app only works with movies that have public reviews on IMDb. If there are no accessible reviews, you&apos;ll see a clear error message.
-- **API keys are provided by the user**: You will provide your own `OMDB_API_KEY` and `OPENAI_API_KEY` and are responsible for usage, cost and rate limiting.
+- **API keys are provided by the user**: You will provide your own `OMDB_API_KEY` and `GEMINI_API_KEY` and are responsible for usage, cost and rate limiting.
 - **Best-effort scraping**: IMDb does not provide a free, official public reviews API. The scraping logic is a best-effort HTML parser and may need periodic adjustment if IMDb changes its markup.
 - **Non-production tool**: This is intended as a learning / demo project, not a production analytics tool. In particular:
   - There is no persistence layer or caching.
@@ -120,4 +120,3 @@ Error states (invalid ID, missing reviews, missing keys, network errors) are han
 - **Creativity & bonus**
   - Gradient background, glassmorphism panels, micro-copy and subtle animations to give a **modern, premium** look.
   - Heuristic fallback sentiment when no AI key is present, so the app remains usable in a constrained environment.
-
