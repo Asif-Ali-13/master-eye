@@ -1,5 +1,6 @@
 import { load } from "cheerio";
-import type { Cheerio, CheerioAPI, Element } from "cheerio";
+import type { Cheerio, CheerioAPI } from "cheerio";
+import type { AnyNode } from "domhandler";
 import type { AudienceReview, MovieDetails } from "./types";
 
 const OMDB_BASE_URL = "https://www.omdbapi.com/";
@@ -142,7 +143,7 @@ function normalizeText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function extractRating(container: Cheerio<Element>, $: CheerioAPI): number | null {
+function extractRating(container: Cheerio<AnyNode>, $: CheerioAPI): number | null {
   const directRatingText =
     normalizeText(container.find(".rating-other-user-rating span").first().text()) ||
     normalizeText(container.find("[data-testid='review-rating']").first().text());
@@ -154,7 +155,7 @@ function extractRating(container: Cheerio<Element>, $: CheerioAPI): number | nul
   const tenScale = container
     .find("span")
     .toArray()
-    .map((node: Element) => normalizeText($(node).text()))
+    .map((node: AnyNode) => normalizeText($(node).text()))
     .find((text) => /^\d{1,2}\/10$/.test(text));
 
   if (!tenScale) return null;
