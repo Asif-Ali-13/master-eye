@@ -1,5 +1,13 @@
 import type { AudienceReview, OverallSentiment, SentimentSummary } from "./types";
 
+interface ChatCompletionsResponse {
+  choices?: Array<{
+    message?: {
+      content?: string;
+    };
+  }>;
+}
+
 export function classifyOverallSentimentFromScore(score: number): OverallSentiment {
   if (score > 0.25) return "positive";
   if (score < -0.25) return "negative";
@@ -61,6 +69,7 @@ Respond in valid JSON only, with this exact shape:
         model: "gpt-4.1-mini",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.4,
+        response_format: { type: "json_object" },
       }),
     });
 
@@ -72,7 +81,7 @@ Respond in valid JSON only, with this exact shape:
       throw new Error(`Failed to call AI sentiment service (${response.status})`);
     }
 
-    const data = (await response.json()) as any;
+    const data = (await response.json()) as ChatCompletionsResponse;
     const content: string | undefined = data.choices?.[0]?.message?.content;
     if (!content) {
       throw new Error("AI response did not contain any content");
@@ -80,7 +89,7 @@ Respond in valid JSON only, with this exact shape:
 
     let parsed: { summary: string; overall: OverallSentiment };
     try {
-      parsed = JSON.parse(content);
+      parsed = JSON.parse(extractLikelyJson(content));
     } catch {
       throw new Error("AI response was not valid JSON");
     }
@@ -88,19 +97,23 @@ Respond in valid JSON only, with this exact shape:
     if (parsed.overall !== "positive" && parsed.overall !== "mixed" && parsed.overall !== "negative") {
       throw new Error("AI response contained an unknown sentiment label");
     }
+    if (typeof parsed.summary !== "string" || !parsed.summary.trim()) {
+      throw new Error("AI response did not contain a usable summary");
+    }
 
     return {
-      summary: parsed.summary,
+      summary: parsed.summary.trim(),
       overall: parsed.overall,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     const joined = reviews.map((r) => r.text).join(" ");
     const approxScore = naiveSentimentScore(joined);
     const overall = classifyOverallSentimentFromScore(approxScore);
+    const errMessage = err instanceof Error ? err.message : "";
 
     const isRateOrServerIssue =
-      err?.message === "TEMPORARY_AI_FAILURE" || typeof err?.message === "string"
-        ? /429|5\d\d/.test(err.message)
+      errMessage === "TEMPORARY_AI_FAILURE" || typeof errMessage === "string"
+        ? /429|5\d\d/.test(errMessage)
         : false;
 
     return {
@@ -110,6 +123,26 @@ Respond in valid JSON only, with this exact shape:
       overall,
     };
   }
+}
+
+function extractLikelyJson(content: string): string {
+  const trimmed = content.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    return trimmed;
+  }
+
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenced?.[1]) {
+    return fenced[1].trim();
+  }
+
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    return trimmed.slice(firstBrace, lastBrace + 1);
+  }
+
+  return trimmed;
 }
 
 const positiveWords = ["good", "great", "amazing", "excellent", "love", "loved", "fantastic", "wonderful", "best"];
@@ -132,4 +165,3 @@ function naiveSentimentScore(text: string): number {
   const lengthPenalty = Math.min(1, text.length / 1000);
   return (score / (positiveWords.length + negativeWords.length)) * lengthPenalty;
 }
-

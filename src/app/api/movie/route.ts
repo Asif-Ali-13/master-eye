@@ -42,15 +42,15 @@ export async function POST(req: NextRequest) {
     };
 
     return NextResponse.json(payload, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in /api/movie", error);
+    const errorMessage = error instanceof Error ? error.message : null;
 
     const message =
-      typeof error?.message === "string"
-        ? error.message
+      typeof errorMessage === "string"
+        ? errorMessage
         : "Something went wrong while fetching movie insights. Please try again.";
 
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-
